@@ -1,3 +1,3 @@
 # TeachingCode
 
-A repository of code used in classes, seminars, and general teaching purposes. 
+A repository of code used in classes, seminars, and for general teaching purposes. 
