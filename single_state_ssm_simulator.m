@@ -37,8 +37,8 @@ plot(1:length(r),repmat(0,length(r),1),'linewidth',1,'color','k')
 h1 = plot(1:length(r),r,'linewidth',2,'color','k')
 
 for i=1:sum(numtrials)-1    
-    %if clamp, then the error is constant; otherwise, error is updated
-    %every trial
+    %if clamp, then the visual error is constant; otherwise, error is 
+    %updated every trial
     if clamp(i)==1
         e(i) = r(i);
     elseif clamp(i) == 0 
