@@ -4,7 +4,7 @@ function r_hat = single_state_ssm_simulator(A,B,r,numtrials,clamp)
 
 %%% Other pointers: numtrials should be input as 1x3 vector (ie,[# of 
 %%% baseline trials, # of perturbation trials, # of washout trials]);
-%%% for a standard visuomotor rotation, set "clamp", to zero. Copy next 
+%%% for a standard visuomotor rotation, set "clamp" to zero. Copy next 
 %%% line into command window to see example of this model learning a 30 deg
 %%% visuomotor rotation:
 %%% single_state_ssm_simulator(.96,.3,30,[10 50 50],0)
@@ -32,7 +32,7 @@ xlabel('Movement cycle')
 ylabel('Hand angle (deg)')
 title('State space model simulation','fontsize',14)
 xlim([0 sum(numtrials)+2])
-ylim([-5 40])
+ylim([-40 40])
 plot(1:length(r),repmat(0,length(r),1),'linewidth',1,'color','k')
 h1 = plot(1:length(r),r,'linewidth',2,'color','k')
 
@@ -48,9 +48,14 @@ for i=1:sum(numtrials)-1
     %internal model
     r_hat(i+1)=A*r_hat(i)+B*e(i); %equation 2 in Taylor & Ivry (2014)
     
-    h2 = plot(r_hat(1:i),'b','LineWidth',3)
- 
+    %%%uncomment next two lines if you want to inject noise into the IM
+    %epsilon = randn(1)*2.5;
+    %r_hat(i+1)=A*r_hat(i)+B*e(i)+epsilon;
+    
+    h2 = plot(r_hat(1:i),'b','LineWidth',4.5)
+    h3 = plot(e(1:i),'.r','markersize',12)
+    
     drawnow    
 end
-legend([h1 h2],'Perturbation','Internal model')
+legend([h1 h2 h3],'Perturbation','Internal model', 'Visual error')
 
