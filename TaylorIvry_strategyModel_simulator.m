@@ -69,3 +69,20 @@ line([442 442],ylim,'linestyle','--','color','k')
 plot(humanoid,'k','linewidth',3)
 plot(e_tgt,'b','linewidth',5)
 
+
+%plot Model Learning for Aiming Target group (Fig. 6D)
+figure; hold on
+ylim([-50 50])
+xlim([0 525])
+title('Model Learning','fontsize',14)
+ylabel('Angle (deg)','fontsize',12)
+xlabel('Movement Number','fontsize',12)
+line(xlim,[0 0],'color','k','linewidth',2)
+line(xlim,[45 45],'color','k','linewidth',2)
+line(xlim,[-45 -45],'color','k','linewidth',2)
+line([120 120],ylim,'linestyle','--','color','k')
+line([442 442],ylim,'linestyle','--','color','k')
+h1=plot(s,'--b','linewidth',2)
+h2=plot(r_est,'b','linewidth',3)
+legend([h1 h2],{'Strategy','Internal Model'})
+
