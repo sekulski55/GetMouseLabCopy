@@ -6,15 +6,87 @@
 
 clear all; close all
 
+%%%Actually, we'll first create Figure 1A,B%%%
+
+%create the experiment
+nBsl = 120;
+nRot = 322;
+nWO = 80;
+
+%Parameters from paper
+A=1; B=.02; %Internal Model parameters
+E=1; F=.05; %Strategy parameters
+
+s(1:nBsl+2) = [zeros(nBsl+2,1)]; %strategy is zero for baseline and first two rotation
+s(nBsl+3) = 45; %participant told to aim to 45 on 3rd trial of rotation                                      
+                                         
+r = [zeros(nBsl,1); ones(nRot,1)*-45; zeros(nWO,1)]; %45 deg VMR
+r_est(1) = 0; %initializing IM (state estimate)
+
+%create Figure 1
+for n=1:length(r)-1
+    
+    %equations
+    e_tgt(n) = s(n) + (r(n)-r_est(n));  %eqn3: the error you see is the sum
+                                        %of your strategy + the rotation - 
+                                        %state estimate
+    
+    e_aim(n) = r(n) - r_est(n);   %eqn4: error signal for adaptation defined
+                                  %by location of feedback relative to aim
+
+    
+    r_est(n+1) = A*r_est(n) + B*e_aim(n); %eqn2: state update is based on 
+                                          %aiming error NOT target error 
+                                          %(this is key to model)
+    
+    if n<=nBsl+2 
+        s(n) = 0;
+    elseif n>nBsl+2 & n<nBsl+nRot
+        s(n+1) = 45; %for first simulation, strategy is constant
+    elseif n>=nBsl+nRot
+        s(n+1) = 0; %we have to set participant's strategy back to zero 
+                    %after perturbation is turned off
+    end
+    
+end
+figure; hold on
+set(gcf,'units','inches','pos',[5 5 10 4]);
+set(gcf,'PaperPositionMode','auto')
+subplot(1,2,1); hold on
+ylim([-50 50])
+xlim([0 525])
+title('Setpoint Model Simulation','fontsize',14)
+ylabel('Target error (deg)','fontsize',12)
+xlabel('Movement Number','fontsize',12)
+line(xlim,[0 0],'color','k','linewidth',2)
+line(xlim,[45 45],'color','k','linewidth',2)
+line(xlim,[-45 -45],'color','k','linewidth',2)
+line([120 120],ylim,'linestyle','--','color','k')
+line([442 442],ylim,'linestyle','--','color','k')
+plot(e_tgt,'r','linewidth',3)
+
+subplot(1,2,2); hold on
+ylim([-50 50])
+xlim([0 525])
+title('Model Processes','fontsize',14)
+ylabel('Angle (deg)','fontsize',12)
+xlabel('Movement Number','fontsize',12)
+line(xlim,[0 0],'color','k','linewidth',2)
+line(xlim,[45 45],'color','k','linewidth',2)
+line(xlim,[-45 -45],'color','k','linewidth',2)
+line([120 120],ylim,'linestyle','--','color','k')
+line([442 442],ylim,'linestyle','--','color','k')
+plot(r_est,'r','linewidth',3)
+plot(s,'b','linewidth',3)
+
+
+%% Now we'll create figure 6
+
 A = .991; %retention factor for adaptation 
 B = .012; %learning rate for adaptation
 E = .999; %retention factor for strategy
 K = .985; %certainty in aiming target location
 F = .023; %learning rate for strategy (how quickly aiming gets adjusted)
-
-nBsl = 120;
-nRot = 322;
-nWO = 80;
 
 s(1:nBsl+2) = [zeros(nBsl+2,1)]; %strategy is zero for baseline and first two rotation
 s(nBsl+3) = 45; %participant told to aim to 45 on 3rd trial of rotation                                      
