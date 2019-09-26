@@ -1,6 +1,5 @@
 function x = dualRateSSM_simulator(Af,Bf,As,Bs)
 
-clear all; close all; clc
 %%% This function was written to simulate the dual-rate state-space model 
 %%% of Smith et al (2006).  
 %%% Copy next line into command window to see example of this model 
@@ -39,7 +38,7 @@ for i=1:sum(nTrials)-1
     h4 = plot(x(1:i),'r','linewidth',4);
     
     %drawnow 
-    %pause(0.001)
+    pause(0.001)
 end
 legend([h1 h2 h3 h4],'Perturbation','Fast state', 'Slow state', 'Net adaptation')
 legend('boxoff')
