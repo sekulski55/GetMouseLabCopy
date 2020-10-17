@@ -64,7 +64,7 @@ black = BlackIndex(screenNumber);
 % Open an on screen window
 [window, windowRect] = PsychImaging('OpenWindow', screenNumber, black);
 WinTabMex(0, window); %Initialize tablet driver, connect it to 'win'
-ListenChar(2)% -rm- no idea what this is
+ListenChar(2)% 
 % Get the size of the on screen window
 [screenXpixels, screenYpixels] = Screen('WindowSize', window);
 
@@ -168,12 +168,6 @@ tgtloc = [tgtx tgty];
 % hit will be any part of cursor touching target
 hit_tolerance = targetsize./2 + cursor_r;
 
-% We will store cursor position data. -HK
-% 1/15/16 update: not storing cursor position this way anymore.
-% Artifact of using GetCursor
-% cursorx = [];
-% cursory = [];
-
 % I think there are 2540 lines per inch (lpi) on tablet
 % tablet active area is 19.2 in x 12.0 in
 tablet_x_scale = 1/27.625;
@@ -190,7 +184,7 @@ HideCursor;
 %     SetMouse(center_tab_x, center_tab_y, window);
 
 
-% See Matlab for Behavioral Scientists by David A. Rosenbaum.
+% set desired sampling rate
 desiredSampleRate = 500;
 k = 0;
 tab_k = 15; % not sure I understand this yet

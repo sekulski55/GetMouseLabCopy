@@ -1,6 +1,5 @@
-% This function loads in all subject data. If the data were saved in rows
-% (eg, x is a vector made up of n rows, 1 column), then you must transpose
-% them.
+%%% This function loads in all subject data into a table for further
+%%% processing. 
 
 clear all; close all
 
