@@ -8,6 +8,7 @@ Screen('Preference', 'SkipSyncTests', 1);
 
 Priority(1)
 
+
 % Here we call some default settings for setting up Psychtoolbox
 PsychDefaultSetup(2);
 
@@ -131,10 +132,14 @@ Screen('BlendFunction', window, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 % some variables
 %mm2pixel = 3.6137;  % may need to change depending on monitor 
 start_tolerance = 10*mm2pixel;  % eventually change to 10
-startcirclewidth = 6*mm2pixel;
-rt_dist_thresh = 10*mm2pixel;
-targetsize = 6*mm2pixel;
-ringsize = 16*mm2pixel;
+%startcirclewidth = 6*mm2pixel;
+startcirclewidth = 5*mm2pixel;
+%rt_dist_thresh = 10*mm2pixel;
+rt_dist_thresh = 5*mm2pixel;
+%targetsize = 6*mm2pixel;
+targetsize = 3*mm2pixel;
+%ringsize = 16*mm2pixel;
+ringsize = 6*mm2pixel;
 red = [255 0 0];
 green = [0 255 0]; 
 blue = [0 0 255];
@@ -152,6 +157,11 @@ SearchTimes = [];
 fb_time = 0;
 hits = 0;
 data = [];
+hand_vel=0;
+prev_vel =0;
+%Vels = [];
+c=0;
+
 
 gamephase = 0;
 trial = 1;
@@ -208,11 +218,22 @@ hand_angle = nan(maxtrialnum,1);
 
 % Variables that store data -all copied from Ryan's code
 MAX_SAMPLES=6e6; %about 1 hour @ 1.6kHz = 60*60*1600
+Trials_Samples = 100000;
 % timevec=nan(MAX_SAMPLES,1);
 % delay_calc_time=nan(MAX_SAMPLES,1);
 gamephase_move=nan(MAX_SAMPLES,1);
 tablet_queue_length=nan(MAX_SAMPLES,1);
 thePoints=nan(MAX_SAMPLES,2);
+theHandDist=nan(MAX_SAMPLES,1); %make array for hand dist hopefully
+Velocity = zeros(Trials_Samples,1);
+Velocity1=[];
+Hand_diff = zeros(Trials_Samples,1);
+Hand_diff_real = [];
+Vels = zeros(Trials_Samples,1);
+u=0;
+v=1;
+w=0;
+
 cursorPoints=nan(MAX_SAMPLES,2);
 tabletPoints=uint16(nan(MAX_SAMPLES/8,2)); %reduce # of samples since the tablet is sampled @ 200Hz
 tabletTime=nan(MAX_SAMPLES/8,1);
@@ -223,6 +244,7 @@ tabletTime=nan(MAX_SAMPLES/8,1);
 dt_all = nan(MAX_SAMPLES,1);
 t = nan(MAX_SAMPLES,1);
 trial_time = nan(MAX_SAMPLES,1);
+phase2_time = nan(MAX_SAMPLES,1);
 trial_move = nan(MAX_SAMPLES,1);
 start_x_move = nan(MAX_SAMPLES,1);
 start_y_move = nan(MAX_SAMPLES,1);
@@ -231,6 +253,25 @@ rotation_move = nan(MAX_SAMPLES,1);
 tic;
 begintime = GetSecs;
 nextsampletime = begintime;
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %Create sine wave rotation
+    %rotation = ones(50,1) %new rotation, delete this
+    x = 0:0.2513:4*pi;    %makes a plot line for the wave with 50 (maxtrial) intervals
+    Sin_rotation = sin(x);   %rotation varible x 10 so I could see
+    i=11;
+    while i<=50;
+        rotation(i)= rotation(i)*Sin_rotation(i-10);
+        i=i+1;
+    end
+    Sine = sin(2*pi*trial/maxtrialnum);
+    %A * Sin( 2 * pi * f * n /N)
+    
+    %creates the negative sine wave gain
+    x2 = 0:0.2513:4*pi;    %makes a plot line for the wave with 50 (maxtrial) intervals
+    Sin_rotation2 = -sin(x2)+1;
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 
 % Loop game until over or ESC key press
 while trial <= maxtrialnum;   %     
@@ -280,17 +321,42 @@ while trial <= maxtrialnum;   %
     % x,y coordinates from WinTabMex pkt
     [hX, hY] = GetMouse(window);
     
+    %hX=Sin_rotation2(trial)*hX; %multplying the mouse position by the negative sine wave to make the gain
+    %hY=Sin_rotation2(trial)*hY;
+    %why do values set under .5 trap the cursor in a box?
+    
     thePoints(k,:) = [hX hY]; % record full precision points
     
     hand_dist = sqrt((hX-xCenter)^2 + (hY-yCenter)^2);
+    %theHandDist(k,:) = hand_dist; 
+    
+    %makes sure that the distances are evenly spaced apart
+    %persistant varibles: remmebered in function workspaces
+    %set up logical statment comparing samples that wont store comsecutive
+    %distances 
+    %would have to change dt as well
+    
+    
+    %Create sine wave rotation
+    %rotation = ones(50,1) %new rotation, delete this
+    %x = 0:0.2513:4*pi;    %makes a plot line for the wave with 50 (maxtrial) intervals
+    %Sin_rotation = 10*sin(x);   %rotation varible x 10 so I could see
+    %rotation(trial)= rotation(trial)*Sin_rotation(trial); %makes new sin rotated array
+    
+    %array = 1:1:50
+    
+    
     
     % ROTATED CURSOR (including clamp)
     if clamped_feedback(trial,1) == 1
         % Clamped fb location:
         rcX = xCenter + hand_dist.*cosd(tgt_ang(trial,1) + rotation(trial,1)); % may need to subtract rotation in order to make (+) clamp CCW
+        %rcX = 2*xCenter + hand_dist.*cosd(tgt_ang(trial,1) + rotation(trial,1));
         rcY = yCenter - hand_dist.*sind(tgt_ang(trial,1) + rotation(trial,1));
+        %rcY = 2*yCenter - hand_dist.*sind(tgt_ang(trial,1) + rotation(trial,1));
     else
         [rcX_rotated, rcY_rotated] = rotatexy(round(hX)-xCenter,(round(hY)-yCenter),rotation(trial,1),1);
+        %[rcX_rotated, rcY_rotated] = rotatexy(round(hX)-xCenter,(round(hY)-yCenter),rotation(trial,1),Sin_rotation2(trial));
         rcX = rcX_rotated + xCenter;
         rcY = rcY_rotated + yCenter;
     end
@@ -329,6 +395,9 @@ while trial <= maxtrialnum;   %
     
     elseif gamephase == 1;  % Show target
         visible = online_fb(trial,1);
+        %online_fb = ones(50,1);
+        %visible = 1;
+        %visible=online_fb(trial,1);
         
         if aiming_landmarks(trial);
             Screen('DrawTexture', window, aimtext{aiming_landmarks(trial)},[],[],[],[],[],white);
@@ -342,10 +411,12 @@ while trial <= maxtrialnum;   %
         if hand_dist >  rt_dist_thresh 
             RTs(trial) = rt;
             gamephase = 2;
+            phase2_time(k) = 0;
         end 
           
     elseif gamephase == 2;  % Moving towards target
         visible = online_fb(trial,1);
+        %visible=0;
         mt = mt + dt;
         MTs(trial) = mt;
         
@@ -355,8 +426,70 @@ while trial <= maxtrialnum;   %
         end
         
         Screen('DrawDots', window, tgtloc(trial,:), targetsize, blue, [], 2);
-      
-        if hand_dist >= tgt_dist(trial,1)
+        
+
+        
+        theHandDist(k,:) = hand_dist/mm2pixel; %hand dist at current sample
+        Hand_diff(k,:) = theHandDist(k) - theHandDist(k-1); 
+         
+        phase2_time(k) = phase2_time(k-1) + (trial_time(k)-trial_time(k-1)) + dt; %calculates time during phase 2
+        Velocity(k) = (theHandDist(k) - theHandDist(k-1)) / (dt); %calculates velocity
+        
+        %these if statements make sure that if the game is sampling too
+        %fast and gives a "false 0" for the velocity it will find the
+        %average of two other close velocity points and make it equal to
+        %that. This should make sure velocity is only 0 when user not
+        %moving
+        
+         if Velocity(k-3)==0
+             Velocity(k-3)= (Velocity(k-2)+Velocity(k-1))/2;
+         end 
+         
+         if Velocity(k-2)==0
+             Velocity(k-2)= (Velocity(k-1)+Velocity(k))/2;
+         end 
+         
+         if Velocity(k-1)==0
+             Velocity(k-1)= (Velocity(k-2)+Velocity(k))/2;
+         end
+ 
+         %if loop if abs hand(k)- hand(k-1) >0
+         %handvel is abs hand(k) - hand(k-1) / time
+         %prevvel = currentvel
+         %else handvel = prev_vel to make sure it doesnt sample too fast
+         if abs(theHandDist(k) - theHandDist(k-1)) > 0
+             %cur_samptime = Getsecs;
+             hand_vel = abs((theHandDist(k) - theHandDist(k-1)/(dt_all(k)-dt_all(k-c))));
+             hand_vel = hand_vel / 1000;
+             prev_vel = hand_vel;
+             c=0;
+         else 
+             hand_vel = prev_vel;
+             c=c+1;
+         end
+         
+
+         
+         Vels(k) = hand_vel;
+ 
+%         
+         %5 cm/sec threshhold 
+         %understand pixels to time, and convert
+         %apporximate pixel to cm
+         %make the threshhold start the movement, and end it
+         %save as tgt, make the first 5 trials not visible
+        
+        
+        
+         if hand_dist >= tgt_dist(trial,1) %had greater than
+         
+         %New if statement makes sure that the user moves at least slightly
+         %during phase 2, and checks to see if both current sample
+         %velocity and k-3 velocity are close enough to 0. This should
+         %happen only when the user stops moving
+         
+       %if phase2_time(k) >= 0.5 && Velocity(k)<=1 && Velocity(k-3)<=1
+       %if phase2_time(k) >= 0.5 && Vels(k)==Vels(k-3)
             fb_angle = atan2d(rcY-yCenter, rcX-xCenter);
             fb_x = tgt_dist(trial,1)*cosd(fb_angle) + xCenter;
             fb_y = tgt_dist(trial,1)*sind(fb_angle) + yCenter;
@@ -375,14 +508,16 @@ while trial <= maxtrialnum;   %
                 hits = hits;
             end
             visible = 0;
-            gamephase = 3;          
+            gamephase = 3;
+            w=0;
         end
              
-    elseif gamephase == 3;  % Endpoint feedback        
+    elseif gamephase == 3;  % Endpoint feedback 
+        %endpoint_fb = ones(50,1); %makes all trials have endpoint feedback
         visible = endpoint_fb(trial,1);
         
         if aiming_landmarks(trial)
-            Screen('DrawTexture', window, aimtext{aiming_landmarks(trial)},[],[],[],[],[],white);
+            Screen('DrawTexture', window, aimtext{aiming_landmarks(trial)},[],[],[],[],[],blue);
             %aim_landmarks(window,tgt_dist(trial),xCenter,yCenter,tgt_ang(trial),fixed,ccw,increment,white)
         end
             
@@ -417,6 +552,7 @@ while trial <= maxtrialnum;   %
                     rt = 0;
                     mt = 0;
                     trial_time(k) = 0;
+                    phase2_time(k)=0;
                     trial = trial + 1;
                 end
             end
@@ -433,6 +569,7 @@ while trial <= maxtrialnum;   %
                     rt = 0;
                     mt = 0;
                     trial_time(k) = 0;
+                    phase2_time(k)=0;
                     trial = trial + 1;
                 end
             end
@@ -449,6 +586,7 @@ while trial <= maxtrialnum;   %
                     rt = 0;
                     mt = 0;
                     trial_time(k) = 0;
+                    phase2_time(k)=0;
                     trial = trial + 1;
                 end
             end
@@ -465,7 +603,8 @@ while trial <= maxtrialnum;   %
                     searchtime = 0;
                     rt = 0;
                     mt = 0;
-                    trial_time(k) = 0;  
+                    trial_time(k) = 0;
+                    phase2_time(k)=0;
                 end
             end
             
@@ -476,22 +615,28 @@ while trial <= maxtrialnum;   %
             rt = 0;
             mt = 0;
             trial_time(k) = 0;
+            phase2_time(k)=0;
             trial = trial + 1;
         end        
     end
     
     % Draw Cursor
     if visible
+        %hX=2*hX;
+        %hY=2*hY;
         if (gamephase == 0)
             cursor = [(hX - cursor_r) (hY - cursor_r) (hX + cursor_r) (hY + cursor_r)];
+            %cursor = 2*cursor;
             cursorPoints(k,:) = [hX hY]; % record full precision points
             Screen('DrawTexture', window, cursortext, [], cursor, [], [], [],[255 255 255]);
+            
         elseif (gamephase == 1 || gamephase == 2)
             cursor = [(rcX - cursor_r) (rcY - cursor_r) (rcX + cursor_r) (rcY + cursor_r)];
             cursorPoints(k,:) = [rcX rcY]; % record full precision points
             Screen('DrawTexture', window, cursortext, [], cursor, [], [], [],[255 255 255]);
         elseif  (gamephase == 3)
-            cursor = [fb_x - cursor_r, fb_y - cursor_r, fb_x + cursor_r, fb_y + cursor_r];
+            %cursor = [fb_x - cursor_r, fb_y - cursor_r, fb_x + cursor_r, fb_y + cursor_r];
+            cursor = [(hX - cursor_r) (hY - cursor_r) (hX + cursor_r) (hY + cursor_r)];
             cursorPoints(k,:) = [fb_x fb_y]; % record full precision points
             Screen('DrawTexture', window, cursortext, [], cursor, [], [], [],[255 255 255]);
         end
@@ -508,6 +653,7 @@ while trial <= maxtrialnum;   %
     end
     
 end
+%end
 
 endtime = GetSecs
 elapsedTime = endtime - begintime
@@ -560,7 +706,7 @@ clear ding tooslow aim_img
 
 %
 % cd('C:\Dropbox\HYO_extSEC\Data')
-cd('/../../Data')
+cd('Data')
 
 % Save data
 name_prefix_all = [tgt_file_name_prefix,'_',name_prefix];
