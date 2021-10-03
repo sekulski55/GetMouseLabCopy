@@ -160,7 +160,10 @@ data = [];
 hand_vel=0;
 prev_vel =0;
 %Vels = [];
-c=0;
+c=1;
+Movement =0;
+z=0;
+
 
 
 gamephase = 0;
@@ -242,6 +245,7 @@ tabletTime=nan(MAX_SAMPLES/8,1);
 % index_of_point_shown = nan(MAX_SAMPLES,1);
 % [deltax,deltay]=deal(nan(MAX_SAMPLES,1));
 dt_all = nan(MAX_SAMPLES,1);
+dt_count = nan(MAX_SAMPLES,1);
 t = nan(MAX_SAMPLES,1);
 trial_time = nan(MAX_SAMPLES,1);
 phase2_time = nan(MAX_SAMPLES,1);
@@ -328,7 +332,8 @@ while trial <= maxtrialnum;   %
     thePoints(k,:) = [hX hY]; % record full precision points
     
     hand_dist = sqrt((hX-xCenter)^2 + (hY-yCenter)^2);
-    %theHandDist(k,:) = hand_dist; 
+    
+    theHandDist(k,:) = hand_dist/(mm2pixel*10); %hand dist at current sample
     
     %makes sure that the distances are evenly spaced apart
     %persistant varibles: remmebered in function workspaces
@@ -429,7 +434,7 @@ while trial <= maxtrialnum;   %
         
 
         
-        theHandDist(k,:) = hand_dist/mm2pixel; %hand dist at current sample
+        %theHandDist(k,:) = hand_dist/mm2pixel; %hand dist at current sample
         Hand_diff(k,:) = theHandDist(k) - theHandDist(k-1); 
          
         phase2_time(k) = phase2_time(k-1) + (trial_time(k)-trial_time(k-1)) + dt; %calculates time during phase 2
@@ -440,38 +445,33 @@ while trial <= maxtrialnum;   %
         %average of two other close velocity points and make it equal to
         %that. This should make sure velocity is only 0 when user not
         %moving
-        
-         if Velocity(k-3)==0
-             Velocity(k-3)= (Velocity(k-2)+Velocity(k-1))/2;
-         end 
-         
-         if Velocity(k-2)==0
-             Velocity(k-2)= (Velocity(k-1)+Velocity(k))/2;
-         end 
-         
-         if Velocity(k-1)==0
-             Velocity(k-1)= (Velocity(k-2)+Velocity(k))/2;
-         end
+ 
  
          %if loop if abs hand(k)- hand(k-1) >0
          %handvel is abs hand(k) - hand(k-1) / time
          %prevvel = currentvel
          %else handvel = prev_vel to make sure it doesnt sample too fast
+        
          if abs(theHandDist(k) - theHandDist(k-1)) > 0
              %cur_samptime = Getsecs;
-             hand_vel = abs((theHandDist(k) - theHandDist(k-1)/(dt_all(k)-dt_all(k-c))));
-             hand_vel = hand_vel / 1000;
+             %hand_vel = abs((theHandDist(k) - theHandDist(k-1)/(dt_all(k)-t*dt_all(k-c))));
+             hand_vel = abs((theHandDist(k) - theHandDist(k-1)/(trial_time(k)-trial_time(k-c))));
+             z = abs(theHandDist(k) - theHandDist(k-1));
              prev_vel = hand_vel;
-             c=0;
+             c=1;
+       
          else 
-             hand_vel = prev_vel;
+             hand_vel = z/(trial_time(k)-trial_time(k-c));
              c=c+1;
          end
-         
-
-         
          Vels(k) = hand_vel;
  
+         %problem is that the else statment makes the VEL plataue at end of
+         %movement. Idea: somehow divide prev_vel by new change in time so
+         %that the vel continues to decrease
+         %prev_vel * (trial_time(k)-trial_time(k-c) / new delta time
+         
+         
 %         
          %5 cm/sec threshhold 
          %understand pixels to time, and convert
@@ -479,17 +479,25 @@ while trial <= maxtrialnum;   %
          %make the threshhold start the movement, and end it
          %save as tgt, make the first 5 trials not visible
         
+         %Movement threshold
+         threshold = 5; %change once units are right
+         if Vels(k) > threshold
+             Movement = 1; 
+         end
+         
+         if Movement ==1 && Vels(k) <= threshold
+            Movement = 2 ; %when Movement=2, go into phase 3
+         end
         
-        
-         if hand_dist >= tgt_dist(trial,1) %had greater than
+         %if hand_dist >= tgt_dist(trial,1) %had greater than
          
          %New if statement makes sure that the user moves at least slightly
          %during phase 2, and checks to see if both current sample
          %velocity and k-3 velocity are close enough to 0. This should
          %happen only when the user stops moving
          
-       %if phase2_time(k) >= 0.5 && Velocity(k)<=1 && Velocity(k-3)<=1
-       %if phase2_time(k) >= 0.5 && Vels(k)==Vels(k-3)
+       %if phase2_time(k) >= 1.0 %&& Vels(k) <= 500 %threshold not right, units need to change 
+       if Movement == 2
             fb_angle = atan2d(rcY-yCenter, rcX-xCenter);
             fb_x = tgt_dist(trial,1)*cosd(fb_angle) + xCenter;
             fb_y = tgt_dist(trial,1)*sind(fb_angle) + yCenter;
@@ -509,7 +517,7 @@ while trial <= maxtrialnum;   %
             end
             visible = 0;
             gamephase = 3;
-            w=0;
+            Movement=0;
         end
              
     elseif gamephase == 3;  % Endpoint feedback 
