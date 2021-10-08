@@ -335,7 +335,7 @@ while trial <= maxtrialnum;   %
     
     theHandDist(k,:) = hand_dist/(mm2pixel*10); %hand dist at current sample
     
-    %makes sure that the distances are evenly spaced apart
+    %makes sure that the dincestas are evenly spaced apart
     %persistant varibles: remmebered in function workspaces
     %set up logical statment comparing samples that wont store comsecutive
     %distances 
@@ -420,8 +420,8 @@ while trial <= maxtrialnum;   %
         end 
           
     elseif gamephase == 2;  % Moving towards target
-        visible = online_fb(trial,1);
-        %visible=0;
+        %visible = online_fb(trial,1);
+        visible=0;
         mt = mt + dt;
         MTs(trial) = mt;
         
@@ -438,13 +438,9 @@ while trial <= maxtrialnum;   %
         Hand_diff(k,:) = theHandDist(k) - theHandDist(k-1); 
          
         phase2_time(k) = phase2_time(k-1) + (trial_time(k)-trial_time(k-1)) + dt; %calculates time during phase 2
-        Velocity(k) = (theHandDist(k) - theHandDist(k-1)) / (dt); %calculates velocity
         
-        %these if statements make sure that if the game is sampling too
-        %fast and gives a "false 0" for the velocity it will find the
-        %average of two other close velocity points and make it equal to
-        %that. This should make sure velocity is only 0 when user not
-        %moving
+        
+
  
  
          %if loop if abs hand(k)- hand(k-1) >0
@@ -452,16 +448,19 @@ while trial <= maxtrialnum;   %
          %prevvel = currentvel
          %else handvel = prev_vel to make sure it doesnt sample too fast
         
+         
+         
          if abs(theHandDist(k) - theHandDist(k-1)) > 0
              %cur_samptime = Getsecs;
              %hand_vel = abs((theHandDist(k) - theHandDist(k-1)/(dt_all(k)-t*dt_all(k-c))));
-             hand_vel = abs((theHandDist(k) - theHandDist(k-1)/(trial_time(k)-trial_time(k-c))));
-             z = abs(theHandDist(k) - theHandDist(k-1));
-             prev_vel = hand_vel;
+             hand_vel = abs(((theHandDist(k) - theHandDist(k-1))/(trial_time(k)-trial_time(k-c))));
+             %z = abs(theHandDist(k) - theHandDist(k-1));
+             %prev_vel = hand_vel;
              c=1;
        
          else 
-             hand_vel = z/(trial_time(k)-trial_time(k-c));
+             %hand_vel = z/(trial_time(k)-trial_time(k-c));
+             %hand_vel=prev_vel;
              c=c+1;
          end
          Vels(k) = hand_vel;
@@ -471,8 +470,10 @@ while trial <= maxtrialnum;   %
          %that the vel continues to decrease
          %prev_vel * (trial_time(k)-trial_time(k-c) / new delta time
          
-         
-%         
+         %New problem is that units do not seem right
+%        %code the target file to be visible for for trials
+
+
          %5 cm/sec threshhold 
          %understand pixels to time, and convert
          %apporximate pixel to cm
